@@ -1,0 +1,22 @@
+#
+# Sample systemd unit for SoftEther VPN.
+# Образец systemd-юнита для SoftEther VPN.
+#
+
+[Unit]
+Description=SoftEther VPN Server
+After=network.target
+ConditionPathExists=!/usr/local/vpnserver/do_not_run
+
+[Service]
+Type=forking
+EnvironmentFile=-/usr/local/vpnserver/vpnserver.env
+ExecStart=/usr/local/vpnserver/vpnserver start
+ExecStartPost=/bin/sleep 1
+ExecStartPost=/usr/local/vpnserver/setaddrs.sh
+ExecStop=/usr/local/vpnserver/vpnserver stop
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
