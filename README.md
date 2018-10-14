@@ -34,8 +34,3 @@ To set evrything up:
 
 You can modify anything else if you want, this is just an example config after all.
 It should be easy to adapt this config for Open VPN and possibly other VPN solutions.
-
-License
--------
-
-This work is licensed under the [MIT license](LICENSE.md).
