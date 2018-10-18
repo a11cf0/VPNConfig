@@ -8,7 +8,7 @@
 set -e
 
 NAME=Portmapping
-VERSION=5.1
+VERSION=5.2
 
 # Load the network configuration.
 # Получаем сетевую конфигурацию.
@@ -21,7 +21,7 @@ source $(dirname $(readlink -f $0))/netconf
 # Вывод справки.
 print_usage() {
 	echo "$NAME $VERSION on $HOSTNAME"
-	echo "Usage: $(basename $0) [-6][-D][host port [tcp|udp]"
+	echo "Usage: $(basename $0) [-6][-D][host [tcp|udp] port"
 	echo "-6 enables IPv6 mode."
 	echo "-D deletes the specified forwarding rule."
 	echo "Hostnname resolution is supported."
@@ -71,8 +71,8 @@ if [[ $1 == -D ]]; then
 fi
 
 LAN_HOST=$1
-SRV_PORT=$2
-PROTO=$3
+PROTO=$2
+SRV_PORT=$3
 
 if [[ $USER != root ]]; then
 	echo "Error: This script must be run as root." >&2
