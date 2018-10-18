@@ -3,7 +3,6 @@
 #
 # This script configures the firewall for VPN compatibility.
 # Скрипт настройки файрвола для VPN.
-#
 # If you're using CSF, create a symlink to this file at
 # /etc/csf/csfpost.sh
 # Otherwise configure your system to run this script on boot or at firewall start.
