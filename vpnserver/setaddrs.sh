@@ -2,9 +2,9 @@
 
 #
 # This Script assigns addresses to the VPN TAP interface.
-# It should be run after the TAP inserface is up.
+# It should be run after the interface is up.
 # Скрипт для присвоения адресов TAP-интерфейсу VPN.
-# Должен запускаться после поднятия TAP-интерфейса.
+# Должен запускаться после его поднятия.
 #
 
 # Load the network configuration.
