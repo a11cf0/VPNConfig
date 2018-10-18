@@ -6,7 +6,6 @@
 # If you're using CSF, create a symlink to this file at
 # /etc/csf/csfpost.sh
 # Otherwise configure your system to run this script on boot or at firewall start.
-#
 # Если используете CSF, создайте символьную ссылку на этот файл по пути
 # /etc/csf/csfpost.sh
 # Иначе, настройте автозапуск этого скрипта при загрузке или при старте фаервола.
