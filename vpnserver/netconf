@@ -7,15 +7,15 @@
 # Внешний интерфейс.
 EXT_IF=$(route | awk '/default /{print $8}')
 # Internal virtual interface.
-#  Внутренний виртуальный интерфейс.
+# Внутренний виртуальный интерфейс.
 INT_IF=tap_vpn
 # Server's public IP.
 # Адрес внешнего интерфейса.
 EXT_IP=$(ifconfig $EXT_IF | awk -F ' *|:' '/inet addr/{print $4}')
-# Address of the virtual interface.
+# Address of the internal interface.
 # Адрес внутреннего интерфейса.
 INT_IP=192.168.200.1
-# Internal virtual subnet.
+# Internal subnet.
 # Внутренняя подсеть.
 INT_SUBNET=192.168.200.0/24
 # Set to 1 to enable IPv6.
@@ -24,7 +24,7 @@ IPV6=0
 # Set to 1 if you're using an IPv6 tunnel broker.
 # Установите в 1 при использовании туннельного брокера IPv6.
 IPV6_TUN=0
-# IPv6 address of the virtual interface.
+# IPv6 address of the internal interface.
 # IPv6-адрес внутреннего интерфейса.
 INT_V6_IP=
 # Prefix length of the IPv6 subnet.
