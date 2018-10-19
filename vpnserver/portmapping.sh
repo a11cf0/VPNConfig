@@ -8,7 +8,7 @@
 set -e
 
 NAME=Portmapping
-VERSION=5.2
+VERSION=5.3
 
 # Load the network configuration.
 # Получаем сетевую конфигурацию.
@@ -28,19 +28,40 @@ print_usage() {
 	echo "You can specify a protocol or a port range in the form [2000]:[3000] instead of a single port number."
 }
 
+# IPv4 address validation.
+# Проверка формата IPv4-адреса.
+valid_v4_ip() {
+	local ip=$1
+	local stat=1
+
+	if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+		OIFS=$IFS
+		IFS='.'
+		ip=($ip)
+		IFS=$OIFS
+		[[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
+			&& ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
+		stat=$?
+	fi
+	return $stat
+}
+
 # Hostname resolution function for IPv4.
 # Функция разрешения доменных имен для IPv4.
 resolve_v4() {
+	set +e
 	if [[ -z $1 ]]; then
 		return 1
 	fi
-	local ip=$(dig +short $1)
+	local ip=$(getent ahostsv4 $1 | head -1 | awk '{print $1}')
 
 	if [[ -z $ip ]]; then
 		echo "Error: No such host." >&2
 		return 1
+	else
+		echo $ip
 	fi
-	echo $ip
+	set -e
 }
 
 # IPv4 port forwarding.
@@ -90,6 +111,8 @@ fi
 
 if [[ $IPV6_MODE -eq 1 ]]; then
 	forward_v6
+elif valid_v4_ip $LAN_HOST; then
+	forward_v4
 else
 	LAN_HOST=$(resolve_v4 $LAN_HOST)
 	forward_v4
