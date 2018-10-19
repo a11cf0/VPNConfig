@@ -5,13 +5,13 @@
 
 # External network interface.
 # Внешний интерфейс.
-EXT_IF=$(route | awk '/default /{print $8}')
+EXT_IF=$(ip route | awk '/default via/{print $5}')
 # Internal virtual interface.
 # Внутренний виртуальный интерфейс.
 INT_IF=tap_vpn
 # Server's public IP.
 # Адрес внешнего интерфейса.
-EXT_IP=$(ifconfig $EXT_IF | awk -F ' *|:' '/inet addr/{print $4}')
+EXT_IP=$(ip address show $EXT_IF | awk -F ' *|/' '/inet /{print $3}')
 # Address of the internal interface.
 # Адрес внутреннего интерфейса.
 INT_IP=192.168.200.1
