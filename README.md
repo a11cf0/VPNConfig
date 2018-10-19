@@ -37,7 +37,7 @@ You can modify anything you want, this is just an example config after all.
 It should be easy to adapt this config for Open VPN and possibly other VPN solutions.
 
 License
-=======
+-------
 
 Copyright (c) 2018 A11CF0
 Licensed under WTFPL v2.
