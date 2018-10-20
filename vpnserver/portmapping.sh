@@ -8,7 +8,7 @@
 set -e
 
 NAME=Portmapping
-VERSION=5.3
+VERSION=5.4
 
 # Load the network configuration.
 # Получаем сетевую конфигурацию.
@@ -49,7 +49,6 @@ valid_v4_ip() {
 # Hostname resolution function for IPv4.
 # Функция разрешения доменных имен для IPv4.
 resolve_v4() {
-	set +e
 	if [[ -z $1 ]]; then
 		return 1
 	fi
@@ -57,11 +56,9 @@ resolve_v4() {
 
 	if [[ -z $ip ]]; then
 		echo "Error: No such host." >&2
-		return 1
-	else
-		echo $ip
+		return 2
 	fi
-	set -e
+	echo $ip
 }
 
 # IPv4 port forwarding.
