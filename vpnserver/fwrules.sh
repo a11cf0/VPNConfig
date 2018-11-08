@@ -9,6 +9,8 @@
 # Если используете CSF, создайте символьную ссылку на этот файл по пути
 # /etc/csf/csfpost.sh
 # Иначе, настройте автозапуск этого скрипта при загрузке или при старте фаервола.
+# Custom commands can be added at the end of this file.
+# Возможно добавление своих команд в конец этого файла.
 #
 
 # Load the network configuration.
