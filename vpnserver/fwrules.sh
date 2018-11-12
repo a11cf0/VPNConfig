@@ -15,7 +15,7 @@
 
 # Load the network configuration.
 # Получаем сетевую конфигурацию.
-source $(dirname $(readlink -f $0))/netconf
+source "$(dirname $(readlink -f $0))/netconf"
 
 # Forward everything from the virtual LAN and all other established connections.
 # Разрешаем проброс трафика из локальной сети и для уже установленных соединений, а остальной запрещаем.

@@ -9,7 +9,7 @@
 
 # Load the network configuration.
 # Получаем сетевую конфигурацию.
-source $(dirname $(readlink -f $0))/netconf
+source "$(dirname $(readlink -f $0))/netconf"
 
 ifconfig $INT_IF $INT_IP
 

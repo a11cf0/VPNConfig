@@ -5,14 +5,12 @@
 # Скрипт для проброса портов с поддержкой IPv4 и IPv6.
 #
 
-set -e
-
 NAME=Portmapping
-VERSION=5.4
+VERSION=5.5
 
 # Load the network configuration.
 # Получаем сетевую конфигурацию.
-source $(dirname $(readlink -f $0))/netconf
+source "$(dirname $(readlink -f $0))/netconf"
 
 ## Functions ##
 ## Функции ##
