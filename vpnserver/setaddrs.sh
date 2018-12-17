@@ -7,6 +7,8 @@
 # Должен запускаться после его поднятия.
 #
 
+set -e
+
 # Load the network configuration.
 # Получаем сетевую конфигурацию.
 source "$(dirname $(readlink -f $0))/netconf"

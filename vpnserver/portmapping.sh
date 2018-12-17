@@ -5,8 +5,10 @@
 # Скрипт для проброса портов с поддержкой IPv4 и IPv6.
 #
 
+set -e
+
 NAME=Portmapping
-VERSION=5.5
+VERSION=6.0
 
 # Load the network configuration.
 # Получаем сетевую конфигурацию.
@@ -19,7 +21,7 @@ source "$(dirname $(readlink -f $0))/netconf"
 # Вывод справки.
 print_usage() {
 	echo "$NAME $VERSION on $HOSTNAME"
-	echo "Usage: $(basename $0) [-6][-D][host [tcp|udp] port"
+	echo "Usage: $(basename $0) [-6][-D][host [tcp|udp|both] port"
 	echo "-6 enables IPv6 mode."
 	echo "-D deletes the specified forwarding rule."
 	echo "Hostnname resolution is supported."
@@ -59,19 +61,18 @@ resolve_v4() {
 	echo $ip
 }
 
-# IPv4 port forwarding.
-# Функция для проброса портов IPv4.
-forward_v4() {
+# port forwarding function.
+# Функция проброса портов.
+forward() {
+	if [[ $IPV6_MODE -eq 1 ]]; then
+		ip6tables ${DEL--I} FORWARD -d $LAN_HOST -p $PROTO --dport $SRV_PORT -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+		return
+	fi
+
 	iptables -t nat ${DEL--I} PREROUTING -d $EXT_IP -p $PROTO --dport $SRV_PORT -j DNAT --to-destination $LAN_HOST
 	iptables -t nat ${DEL--A} POSTROUTING -s $INT_SUBNET -d $LAN_HOST -p $PROTO --dport $SRV_PORT -j SNAT --to-source $INT_IP
 	iptables -t nat ${DEL--A} OUTPUT -d $EXT_IP -p $PROTO --dport $SRV_PORT -j DNAT --to-destination $LAN_HOST
 	iptables ${DEL--I} FORWARD -d $LAN_HOST -p $PROTO --dport $SRV_PORT -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
-}
-
-# IPv6 forwarding.
-# Функция для проброса IPv6.
-forward_v6() {
-	ip6tables ${DEL--I} FORWARD -d $LAN_HOST -p $PROTO --dport $SRV_PORT -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
 }
 
 ## Main code ##
@@ -98,17 +99,21 @@ fi
 if [[ $# -eq 0 ]]; then
 	print_usage
 	exit 0
-elif [[ $# -ne 3 || $PROTO != tcp && $PROTO != udp ]]; then
+elif [[ $# -ne 3 || ( $PROTO != tcp && $PROTO != udp && $PROTO != both ) ]]; then
 	echo "Error: Bad arguments supplied." >&2
 	print_usage >&2
 	exit 1
 fi
 
-if [[ $IPV6_MODE -eq 1 ]]; then
-	forward_v6
-elif valid_v4_ip $LAN_HOST; then
-	forward_v4
-else
+if [[ $IPV6_MODE -ne 1 ]] && ! valid_v4_ip $LAN_HOST; then
 	LAN_HOST=$(resolve_v4 $LAN_HOST)
-	forward_v4
+fi
+
+if [[ $PROTO == both ]]; then
+	PROTOS="tcp udp"
+	for PROTO in $PROTOS; do
+		forward
+	done
+else
+	forward
 fi
