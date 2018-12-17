@@ -25,7 +25,7 @@ print_usage() {
 	echo "-6 enables IPv6 mode."
 	echo "-D deletes the specified forwarding rule."
 	echo "Hostnname resolution is supported."
-	echo "You can specify a protocol or a port range in the form [2000]:[3000] instead of a single port number."
+	echo "You can specify a protocol name or a port range in the form [2000]:[3000] instead of a single port number."
 }
 
 # IPv4 address validation.
