@@ -8,7 +8,7 @@
 set -e
 
 NAME=Portmapping
-VERSION=6.0
+VERSION=6.1
 
 # Load the network configuration.
 # Получаем сетевую конфигурацию.
@@ -96,7 +96,7 @@ if [[ $USER != root ]]; then
 	exit 1
 fi
 
-if [[ $# -eq 0 ]]; then
+if [[ $# -eq 0 || $* == -h || $* == -H || $* == --help ]]; then
 	print_usage
 	exit 0
 elif [[ $# -ne 3 || ( $PROTO != tcp && $PROTO != udp && $PROTO != both ) ]]; then
