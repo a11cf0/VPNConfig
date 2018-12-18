@@ -8,7 +8,7 @@
 set -e
 
 NAME=Portmapping
-VERSION=6.1
+VERSION=7.0
 
 # Load the network configuration.
 # Получаем сетевую конфигурацию.
@@ -19,18 +19,18 @@ source "$(dirname $(readlink -f $0))/netconf"
 
 # Show usage text.
 # Вывод справки.
-print_usage() {
+function print_usage() {
 	echo "$NAME $VERSION on $HOSTNAME"
-	echo "Usage: $(basename $0) [-6][-D][host [tcp|udp|both] port"
+	echo "Usage: $(basename $0) [-6][-D][host [tcp|udp|both] port [extport]"
 	echo "-6 enables IPv6 mode."
 	echo "-D deletes the specified forwarding rule."
-	echo "Hostnname resolution is supported."
-	echo "You can specify a protocol name or a port range in the form [2000]:[3000] instead of a single port number."
+	echo "Hostname resolution is supported."
+	echo "You can specify protocol names or port ranges in the form [2000]:[3000] instead of plain port numbers."
 }
 
 # IPv4 address validation.
 # Проверка формата IPv4-адреса.
-valid_v4_ip() {
+function valid_v4_ip() {
 	local ip=$1
 	local stat=1
 
@@ -48,7 +48,7 @@ valid_v4_ip() {
 
 # Hostname resolution function for IPv4.
 # Функция разрешения доменных имен для IPv4.
-resolve_v4() {
+function resolve_v4() {
 	if [[ -z $1 ]]; then
 		return 1
 	fi
@@ -63,15 +63,15 @@ resolve_v4() {
 
 # port forwarding function.
 # Функция проброса портов.
-forward() {
+function forward() {
 	if [[ $IPV6_MODE -eq 1 ]]; then
 		ip6tables ${DEL--I} FORWARD -d $LAN_HOST -p $PROTO --dport $SRV_PORT -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
 		return
 	fi
 
-	iptables -t nat ${DEL--I} PREROUTING -d $EXT_IP -p $PROTO --dport $SRV_PORT -j DNAT --to-destination $LAN_HOST
+	iptables -t nat ${DEL--I} PREROUTING -d $EXT_IP -p $PROTO --dport $EXT_PORT -j DNAT --to-destination $LAN_HOST:$SRV_PORT
 	iptables -t nat ${DEL--A} POSTROUTING -s $INT_SUBNET -d $LAN_HOST -p $PROTO --dport $SRV_PORT -j SNAT --to-source $INT_IP
-	iptables -t nat ${DEL--A} OUTPUT -d $EXT_IP -p $PROTO --dport $SRV_PORT -j DNAT --to-destination $LAN_HOST
+	iptables -t nat ${DEL--A} OUTPUT -d $EXT_IP -p $PROTO --dport $EXT_PORT -j DNAT --to-destination $LAN_HOST:$SRV_PORT
 	iptables ${DEL--I} FORWARD -d $LAN_HOST -p $PROTO --dport $SRV_PORT -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
 }
 
@@ -90,6 +90,7 @@ fi
 LAN_HOST=$1
 PROTO=$2
 SRV_PORT=$3
+EXT_PORT=${4:-$SRV_PORT}
 
 if [[ $USER != root ]]; then
 	echo "Error: This script must be run as root." >&2
@@ -99,10 +100,17 @@ fi
 if [[ $# -eq 0 || $* == -h || $* == -H || $* == --help ]]; then
 	print_usage
 	exit 0
-elif [[ $# -ne 3 || ( $PROTO != tcp && $PROTO != udp && $PROTO != both ) ]]; then
-	echo "Error: Bad arguments supplied." >&2
+elif [[ -z $LAN_HOST || -z $PROTO || -z $SRV_PORT ]]; then
+	echo "Error: Required argument is missing." >&2
+	ERR=1
+elif [[ $PROTO != tcp && $PROTO != udp && $PROTO != both ]]; then
+	echo "Error: The specified protocol is incorrect." >&2
+	ERR=1
+fi
+
+if [[ ! -z $ERR ]]; then
 	print_usage >&2
-	exit 1
+	exit $ERR
 fi
 
 if [[ $IPV6_MODE -ne 1 ]] && ! valid_v4_ip $LAN_HOST; then
