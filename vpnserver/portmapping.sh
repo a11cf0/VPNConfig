@@ -52,6 +52,7 @@ function valid_v4_ip() {
 	if [[ -z "$@" ]]; then
 		return 1
 	fi
+
 	ip="$1"
 	stat=1
 
@@ -75,6 +76,7 @@ function resolve_v4() {
 	if [[ -z "$@" ]]; then
 		return 1
 	fi
+
 	ip=$(getent ahostsv4 $1 2> /dev/null | head -1 | awk '{print $1}')
 
 	if [[ -z "$ip" ]]; then
@@ -97,8 +99,8 @@ vexec() {
 	eval "$@"
 }
 
-# Existence check for iptables rules.
-# Функция для проверки существования правил iptables.
+# Check if iptables rules already exist.
+# Функция для проверки правил iptables на существование.
 check_rules() {
 	local result
 
@@ -197,7 +199,6 @@ elif [[ "$PROTOS" != "tcp" && "$PROTOS" != "udp" ]]; then
 fi
 
 for PROTO in $PROTOS; do
-	if check_rules "$FWD_OPT"; then
-		forward "$FWD_OPT"
-	fi
+	check_rules "$FWD_OPT"
+	forward "$FWD_OPT"
 done
