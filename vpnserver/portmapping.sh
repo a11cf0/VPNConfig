@@ -5,10 +5,18 @@
 # Скрипт для проброса портов с поддержкой IPv4 и IPv6.
 #
 
-set -e
+set -euo pipefail
 
-NAME=Portmapping
-VERSION=7.0
+## Globals ##
+## Глобальные переменные ##
+
+SCRIPT_NAME="Portmapping"
+SCRIPT_VERSION="8.0"
+
+IPV6_MODE=0
+VERBOSE=0
+FORCE=0
+FWD_OPT=""
 
 # Load the network configuration.
 # Получаем сетевую конфигурацию.
@@ -17,28 +25,40 @@ source "$(dirname $(readlink -f $0))/netconf"
 ## Functions ##
 ## Функции ##
 
-# Show usage text.
-# Вывод справки.
+# Show usage text and exit.
+# Вывод справки и выход.
 function print_usage() {
-	echo "$NAME $VERSION on $HOSTNAME"
-	echo "Usage: $(basename $0) [-6][-D][host [tcp|udp|both] port [extport]"
-	echo "-6 enables IPv6 mode."
-	echo "-D deletes the specified forwarding rule."
-	echo "Hostname resolution is supported."
-	echo "You can specify protocol names or port ranges in the form [2000]:[3000] instead of plain port numbers."
+	cat <<-EOF >&2
+	$SCRIPT_NAME $SCRIPT_VERSION on $(hostname)
+	Usage: $(basename $0) [OPTION]... [HOST [tcp|udp|both] PORT [EXTPORT]]
+	
+	-6 enables IPv6 mode (doesn't support port redirection)
+	-D deletes the specified forwarding rule
+	-f skips all rule checks
+	-v enables verbose output
+	-h or -H prints this help
+	
+	Hostname resolution is supported.
+	You can specify protocol names or port ranges in the form [2000]:[3000] instead of plain port numbers.
+	EOF
+	exit 2
 }
 
 # IPv4 address validation.
 # Проверка формата IPv4-адреса.
 function valid_v4_ip() {
-	local ip=$1
-	local stat=1
+	local ip stat
+	if [[ -z "$@" ]]; then
+		return 1
+	fi
+	ip="$1"
+	stat=1
 
-	if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-		OIFS=$IFS
-		IFS='.'
+	if [[ "$ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+		OIFS="$IFS"
+		IFS="."
 		ip=($ip)
-		IFS=$OIFS
+		IFS="$OIFS"
 		[[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
 			&& ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
 		stat=$?
@@ -49,79 +69,133 @@ function valid_v4_ip() {
 # Hostname resolution function for IPv4.
 # Функция разрешения доменных имен для IPv4.
 function resolve_v4() {
-	if [[ -z $1 ]]; then
+	local ip
+	if [[ -z "$@" ]]; then
 		return 1
 	fi
-	local ip=$(getent ahostsv4 $1 2> /dev/null | head -1 | awk '{print $1}')
+	ip=$(getent ahostsv4 $1 2> /dev/null | head -1 | awk '{print $1}')
 
-	if [[ -z $ip ]]; then
+	if [[ -z "$ip" ]]; then
 		echo "Error: No such host." >&2
 		return 2
 	fi
-	echo $ip
+	echo "$ip"
+}
+
+# For verbose output. Echo a command befor execution.
+# Функция подробного вывода. Вывод команды перед выполнением.
+vexec() {
+	if [[ -z "$@" ]]; then
+		return 1
+	fi
+
+	if [[ $VERBOSE -eq 1 ]]; then
+		echo "$@" >&2
+	fi
+	eval "$@"
+}
+
+# Existence check for iptables rules.
+# Функция для проверки существования правил iptables.
+check_rules() {
+	local result
+
+	if [[ $FORCE -eq 1 ]]; then
+		return
+	fi
+	result=1
+
+	if forward -C > /dev/null 2>&1 ; then
+		result=0
+	fi
+	if [[ "$@" == "-D" ]]; then
+		if [[ $result -ne 0 ]]; then
+			echo "Error: No such rule." >&2
+		fi
+		return $result
+	fi
+
+	result=$(( result ^= 1 ))
+	if [[ $result -ne 0 ]]; then
+		echo "Error: Rule already exists." >&2
+	fi
+	return $result
 }
 
 # port forwarding function.
 # Функция проброса портов.
 function forward() {
 	if [[ $IPV6_MODE -eq 1 ]]; then
-		ip6tables ${DEL--I} FORWARD -d $LAN_HOST -p $PROTO --dport $SRV_PORT -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+		vexec ip6tables "${1:--I}" FORWARD -d "$LAN_HOST" -p "$PROTO" --dport "$SRV_PORT" -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
 		return
 	fi
 
-	iptables -t nat ${DEL--I} PREROUTING -d $EXT_IP -p $PROTO --dport $EXT_PORT -j DNAT --to-destination $LAN_HOST:$SRV_PORT
-	iptables -t nat ${DEL--A} POSTROUTING -s $INT_SUBNET -d $LAN_HOST -p $PROTO --dport $SRV_PORT -j SNAT --to-source $INT_IP
-	iptables -t nat ${DEL--A} OUTPUT -d $EXT_IP -p $PROTO --dport $EXT_PORT -j DNAT --to-destination $LAN_HOST:$SRV_PORT
-	iptables ${DEL--I} FORWARD -d $LAN_HOST -p $PROTO --dport $SRV_PORT -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+	vexec iptables -t nat "${1:--I}" PREROUTING -d "$EXT_IP" -p "$PROTO" --dport "$EXT_PORT" -j DNAT --to-destination "$LAN_HOST":"$SRV_PORT" && \
+	vexec iptables -t nat "${1:--A}" POSTROUTING -s "$INT_SUBNET" -d "$LAN_HOST" -p "$PROTO" --dport "$SRV_PORT" -j SNAT --to-source "$INT_IP" && \
+	vexec iptables -t nat "${1:--A}" OUTPUT -d "$EXT_IP" -p "$PROTO" --dport "$EXT_PORT" -j DNAT --to-destination "$LAN_HOST":"$SRV_PORT" && \
+	vexec iptables "${1:--I}" FORWARD -d "$LAN_HOST" -p "$PROTO" --dport "$SRV_PORT" -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
 }
 
 ## Main code ##
 ## Основной код ##
 
-if [[ $1 == -6 ]]; then
-	IPV6_MODE=1
-	shift
-fi
-if [[ $1 == -D ]]; then
-	DEL=$1
-	shift
-fi
-
-LAN_HOST=$1
-PROTO=$2
-SRV_PORT=$3
-EXT_PORT=${4:-$SRV_PORT}
-
-if [[ $USER != root ]]; then
+if [[ $EUID -ne 0 ]]; then
 	echo "Error: This script must be run as root." >&2
 	exit 1
 fi
 
-if [[ $# -eq 0 || $* == -h || $* == -H || $* == --help ]]; then
+if [[ -z "$@" ]]; then
 	print_usage
-	exit 0
-elif [[ -z $LAN_HOST || -z $PROTO || -z $SRV_PORT ]]; then
+fi
+
+while getopts ":6DfvhH" OPT; do
+	case "$OPT" in
+		6)
+		IPV6_MODE=1
+		;;
+		D)
+		FWD_OPT="-D"
+		;;
+		f)
+		FORCE=1
+		;;
+		v)
+		VERBOSE=1
+		;;
+		h|H)
+		print_usage
+		;;
+		?)
+		echo "Error: Invalid option $1." >&2
+		print_usage
+		;;
+	esac
+done
+shift $((OPTIND - 1))
+
+if [[ $# -lt 3 ]]; then
 	echo "Error: Required argument is missing." >&2
-	ERR=1
-elif [[ $PROTO != tcp && $PROTO != udp && $PROTO != both ]]; then
-	echo "Error: The specified protocol is incorrect." >&2
-	ERR=1
+	print_usage
 fi
 
-if [[ ! -z $ERR ]]; then
-	print_usage >&2
-	exit $ERR
+LAN_HOST="$1"
+PROTOS="$2"
+SRV_PORT="$3"
+EXT_PORT="${4:-$SRV_PORT}"
+
+if [[ $IPV6_MODE -ne 1 ]] && ! valid_v4_ip "$LAN_HOST"; then
+	LAN_HOST=$(resolve_v4 "$LAN_HOST")
 fi
 
-if [[ $IPV6_MODE -ne 1 ]] && ! valid_v4_ip $LAN_HOST; then
-	LAN_HOST=$(resolve_v4 $LAN_HOST)
-fi
-
-if [[ $PROTO == both ]]; then
+if [[ "$PROTOS" == "both" ]]; then
 	PROTOS="tcp udp"
-	for PROTO in $PROTOS; do
-		forward
-	done
-else
-	forward
+elif [[ "$PROTOS" != "tcp" && "$PROTOS" != "udp" ]]; then
+	echo "Error: Protocol is incorrect." >&2
+	print_usage
 fi
+
+for PROTO in "$PROTOS"; do
+	if check_rules "$FWD_OPT"; then
+		forward "$FWD_OPT"
+	fi
+done
