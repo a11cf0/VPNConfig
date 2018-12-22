@@ -48,6 +48,7 @@ function print_usage() {
 # Проверка формата IPv4-адреса.
 function valid_v4_ip() {
 	local ip stat
+
 	if [[ -z "$@" ]]; then
 		return 1
 	fi
@@ -70,6 +71,7 @@ function valid_v4_ip() {
 # Функция разрешения доменных имен для IPv4.
 function resolve_v4() {
 	local ip
+
 	if [[ -z "$@" ]]; then
 		return 1
 	fi
@@ -194,7 +196,7 @@ elif [[ "$PROTOS" != "tcp" && "$PROTOS" != "udp" ]]; then
 	print_usage
 fi
 
-for PROTO in "$PROTOS"; do
+for PROTO in $PROTOS; do
 	if check_rules "$FWD_OPT"; then
 		forward "$FWD_OPT"
 	fi
