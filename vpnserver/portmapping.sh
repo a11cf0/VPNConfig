@@ -7,6 +7,10 @@
 
 set -euo pipefail
 
+# Load the network configuration.
+# Получаем сетевую конфигурацию.
+source "$(dirname $(readlink -f $0))/netconf"
+
 ## Globals ##
 ## Глобальные переменные ##
 
@@ -17,10 +21,6 @@ IPV6_MODE=0
 VERBOSE=0
 FORCE=0
 FWD_OPT=""
-
-# Load the network configuration.
-# Получаем сетевую конфигурацию.
-source "$(dirname $(readlink -f $0))/netconf"
 
 ## Functions ##
 ## Функции ##
@@ -88,7 +88,7 @@ function resolve_v4() {
 
 # For verbose output. Echo a command befor execution.
 # Функция подробного вывода. Вывод команды перед выполнением.
-vexec() {
+function vexec() {
 	if [[ -z "$@" ]]; then
 		return 1
 	fi
@@ -99,14 +99,15 @@ vexec() {
 	eval "$@"
 }
 
-# Check if iptables rules already exist.
-# Функция для проверки правил iptables на существование.
-check_rules() {
+# Check if iptables rules exist.
+# Функция для проверки существования правил iptables.
+function check_rules() {
 	local result
 
 	if [[ $FORCE -eq 1 ]]; then
 		return
 	fi
+
 	result=1
 
 	if forward -C > /dev/null 2>&1 ; then
@@ -118,7 +119,6 @@ check_rules() {
 		fi
 		return $result
 	fi
-
 	result=$(( result ^= 1 ))
 	if [[ $result -ne 0 ]]; then
 		echo "Error: Rule already exists." >&2
@@ -133,7 +133,6 @@ function forward() {
 		vexec ip6tables "${1:--I}" FORWARD -d "$LAN_HOST" -p "$PROTO" --dport "$SRV_PORT" -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
 		return
 	fi
-
 	vexec iptables -t nat "${1:--I}" PREROUTING -d "$EXT_IP" -p "$PROTO" --dport "$EXT_PORT" -j DNAT --to-destination "$LAN_HOST":"$SRV_PORT" && \
 	vexec iptables -t nat "${1:--A}" POSTROUTING -s "$INT_SUBNET" -d "$LAN_HOST" -p "$PROTO" --dport "$SRV_PORT" -j SNAT --to-source "$INT_IP" && \
 	vexec iptables -t nat "${1:--A}" OUTPUT -d "$EXT_IP" -p "$PROTO" --dport "$EXT_PORT" -j DNAT --to-destination "$LAN_HOST":"$SRV_PORT" && \
