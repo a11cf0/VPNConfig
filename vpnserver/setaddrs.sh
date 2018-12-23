@@ -7,7 +7,7 @@
 # Должен запускаться после его поднятия.
 #
 
-set -eu
+set -euo pipefail
 
 # Load the network configuration.
 # Получаем сетевую конфигурацию.

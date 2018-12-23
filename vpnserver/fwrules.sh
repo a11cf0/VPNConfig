@@ -13,7 +13,7 @@
 # Возможно добавление своих команд в конец этого файла.
 #
 
-set -eu
+set -euo pipefail
 
 # Load the network configuration.
 # Получаем сетевую конфигурацию.
