@@ -30,7 +30,6 @@ FWD_OPT=""
 function print_usage() {
 	cat <<-EOF >&2
 	$SCRIPT_NAME $SCRIPT_VERSION on $(hostname)
-
 	Usage: $(basename $0) [OPTION]... [HOST [tcp|udp|both] PORT [EXTPORT]]
 
 	-6 enables IPv6 mode (doesn't support port redirection)
@@ -79,7 +78,7 @@ function resolve_v4() {
 
 	ip=$(getent ahostsv4 $1 2> /dev/null | head -1 | awk '{print $1}')
 	if [[ -z "$ip" ]]; then
-		echo "Error: No such host." >&2
+		echo "Error: No such host" >&2
 		return 1
 	fi
 	echo "$ip"
@@ -99,7 +98,7 @@ function vexec() {
 }
 
 # Check if iptables rules exist.
-# Функция для проверки существования правил iptables.
+# Функция проверки правил iptables на существование.
 function check_rules() {
 	local result
 
@@ -113,13 +112,13 @@ function check_rules() {
 	fi
 	if [[ "$@" == "-D" ]]; then
 		if [[ $result -ne 0 ]]; then
-			echo "Error: No such rule." >&2
+			echo "Error: No such rule" >&2
 		fi
 		return $result
 	fi
 	result=$(( result ^= 1 ))
 	if [[ $result -ne 0 ]]; then
-		echo "Error: Rule already exists." >&2
+		echo "Error: Rule already exists" >&2
 	fi
 	return $result
 }
@@ -141,7 +140,7 @@ function forward() {
 ## Основной код ##
 
 if [[ $EUID -ne 0 ]]; then
-	echo "Error: This script must be run as root." >&2
+	echo "Error: This script must be run as root" >&2
 	exit 1
 fi
 
@@ -149,8 +148,11 @@ if [[ $# -eq 0 ]]; then
 	print_usage
 fi
 
-while getopts ":6DfvhH" OPT; do
+while getopts ":hH6Dfv" OPT; do
 	case "$OPT" in
+		h|H)
+		print_usage
+		;;
 		6)
 		IPV6_MODE=1
 		;;
@@ -163,11 +165,8 @@ while getopts ":6DfvhH" OPT; do
 		v)
 		VERBOSE=1
 		;;
-		h|H)
-		print_usage
-		;;
 		?)
-		echo "Error: Invalid option $1." >&2
+		echo "Error: Invalid option -- '$OPTARG'" >&2
 		print_usage
 		;;
 	esac
@@ -175,7 +174,7 @@ done
 shift $((OPTIND - 1))
 
 if [[ $# -lt 3 ]]; then
-	echo "Error: Required argument is missing." >&2
+	echo "Error: Required argument is missing" >&2
 	print_usage
 fi
 
@@ -191,7 +190,7 @@ fi
 if [[ "$PROTOS" == "both" ]]; then
 	PROTOS="tcp udp"
 elif [[ "$PROTOS" != "tcp" && "$PROTOS" != "udp" ]]; then
-	echo "Error: Protocol is incorrect." >&2
+	echo "Error: Protocol is incorrect" >&2
 	print_usage
 fi
 
