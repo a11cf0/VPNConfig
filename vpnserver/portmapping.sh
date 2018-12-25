@@ -30,14 +30,15 @@ FWD_OPT=""
 function print_usage() {
 	cat <<-EOF >&2
 	$SCRIPT_NAME $SCRIPT_VERSION on $(hostname)
+
 	Usage: $(basename $0) [OPTION]... [HOST [tcp|udp|both] PORT [EXTPORT]]
-	
+
 	-6 enables IPv6 mode (doesn't support port redirection)
 	-D deletes the specified forwarding rule
 	-f skips all rule checks
 	-v enables verbose output
 	-h or -H prints this help
-	
+
 	Hostname resolution is supported.
 	You can specify protocol names or port ranges in the form [2000]:[3000] instead of plain port numbers.
 	EOF
@@ -49,13 +50,12 @@ function print_usage() {
 function valid_v4_ip() {
 	local ip stat
 
-	if [[ -z "$@" ]]; then
+	if [[ $# -eq 0 ]]; then
 		return 1
 	fi
 
 	ip="$1"
 	stat=1
-
 	if [[ "$ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
 		OIFS="$IFS"
 		IFS="."
@@ -73,15 +73,14 @@ function valid_v4_ip() {
 function resolve_v4() {
 	local ip
 
-	if [[ -z "$@" ]]; then
+	if [[ $# -eq 0 ]]; then
 		return 1
 	fi
 
 	ip=$(getent ahostsv4 $1 2> /dev/null | head -1 | awk '{print $1}')
-
 	if [[ -z "$ip" ]]; then
 		echo "Error: No such host." >&2
-		return 2
+		return 1
 	fi
 	echo "$ip"
 }
@@ -89,7 +88,7 @@ function resolve_v4() {
 # For verbose output. Echo a command befor execution.
 # Функция подробного вывода. Вывод команды перед выполнением.
 function vexec() {
-	if [[ -z "$@" ]]; then
+	if [[ $# -eq 0 ]]; then
 		return 1
 	fi
 
@@ -109,7 +108,6 @@ function check_rules() {
 	fi
 
 	result=1
-
 	if forward -C > /dev/null 2>&1 ; then
 		result=0
 	fi
@@ -147,7 +145,7 @@ if [[ $EUID -ne 0 ]]; then
 	exit 1
 fi
 
-if [[ -z "$@" ]]; then
+if [[ $# -eq 0 ]]; then
 	print_usage
 fi
 
