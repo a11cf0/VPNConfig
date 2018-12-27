@@ -15,7 +15,7 @@ source "$(dirname $(readlink -f $0))/netconf"
 ## Глобальные переменные ##
 
 SCRIPT_NAME="Portmapping"
-SCRIPT_VERSION="8.0"
+SCRIPT_VERSION="8.1"
 
 IPV6_MODE=0
 VERBOSE=0
@@ -42,29 +42,6 @@ function print_usage() {
 	You can specify protocol names or port ranges in the form [2000]:[3000] instead of plain port numbers.
 	EOF
 	exit 2
-}
-
-# IPv4 address validation.
-# Проверка формата IPv4-адреса.
-function valid_v4_ip() {
-	local ip stat
-
-	if [[ $# -eq 0 ]]; then
-		return 1
-	fi
-
-	ip="$1"
-	stat=1
-	if [[ "$ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-		OIFS="$IFS"
-		IFS="."
-		ip=($ip)
-		IFS="$OIFS"
-		[[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
-			&& ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
-		stat=$?
-	fi
-	return $stat
 }
 
 # Hostname resolution function for IPv4.
@@ -98,7 +75,7 @@ function vexec() {
 }
 
 # Check if iptables rules exist.
-# Функция проверки правил iptables на существование.
+# Функция для проверки правил iptables на существование.
 function check_rules() {
 	local result
 
@@ -130,6 +107,7 @@ function forward() {
 		vexec ip6tables "${1:--I}" FORWARD -d "$LAN_HOST" -p "$PROTO" --dport "$SRV_PORT" -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
 		return
 	fi
+
 	vexec iptables -t nat "${1:--I}" PREROUTING -d "$EXT_IP" -p "$PROTO" --dport "$EXT_PORT" -j DNAT --to-destination "$LAN_HOST":"$SRV_PORT" && \
 	vexec iptables -t nat "${1:--A}" POSTROUTING -s "$INT_SUBNET" -d "$LAN_HOST" -p "$PROTO" --dport "$SRV_PORT" -j SNAT --to-source "$INT_IP" && \
 	vexec iptables -t nat "${1:--A}" OUTPUT -d "$EXT_IP" -p "$PROTO" --dport "$EXT_PORT" -j DNAT --to-destination "$LAN_HOST":"$SRV_PORT" && \
@@ -183,7 +161,7 @@ PROTOS="$2"
 SRV_PORT="$3"
 EXT_PORT="${4:-$SRV_PORT}"
 
-if [[ $IPV6_MODE -ne 1 ]] && ! valid_v4_ip "$LAN_HOST"; then
+if [[ $IPV6_MODE -ne 1 ]]; then
 	LAN_HOST=$(resolve_v4 "$LAN_HOST")
 fi
 
