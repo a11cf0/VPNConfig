@@ -53,7 +53,7 @@ function resolve_v4() {
 		return 1
 	fi
 
-	ip=$(getent ahostsv4 $1 2> /dev/null | head -1 | awk '{print $1}')
+	ip=$(getent -- ahostsv4 "$1" 2> /dev/null | head -1 | awk '{print $1}')
 	if [[ -z "$ip" ]]; then
 		echo "Error: No such host" >&2
 		return 1
