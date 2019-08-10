@@ -13,9 +13,9 @@ set -euo pipefail
 # Получаем сетевую конфигурацию.
 source "$(dirname $(readlink -f $0))/netconf"
 
-ifconfig "$INT_IF" "$INT_IP"
+ip address add "$INT_IP"$(echo "$INT_SUBNET" | grep -Po '/\d+$') broadcast + dev "$INT_IF"
 
 # IPv6
 if [[ $IPV6 -eq 1 ]]; then
-	ifconfig "$INT_IF" inet6 add "$INT_V6_IP"/"$INT_V6_PREFLEN"
+	ip -6 address add "$INT_V6_IP"/"$INT_V6_PREFLEN" dev "$INT_IF"
 fi
