@@ -39,5 +39,5 @@ It should be easy to adapt this config for Open VPN and possibly other VPN solut
 License
 -------
 
-Copyright (c) 2018 A11CF0
+Copyright (c) 2018-2019 A11CF0
 Licensed under WTFPL v2.
