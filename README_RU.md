@@ -39,5 +39,5 @@ VPNConfig
 Лицензия
 --------
 
-Copyright (c) 2018-2019 A11CF0
+Copyright (c) 2018-2020 A11CF0
 Распространяется под лицензией WTFPL v2.

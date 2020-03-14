@@ -11,7 +11,7 @@ EXT_IF=$(ip route | awk '/default via/{print $5}')
 INT_IF=tap_vpn
 # Server's public IP.
 # Адрес внешнего интерфейса.
-EXT_IP=$(ip address show "$EXT_IF" | awk -F ' *|/' '/inet /{print $3}')
+EXT_IP=$(ip address show "$EXT_IF" | awk -F ' *|/' '/inet /{print $3}' | head -1)
 # Address of the internal interface.
 # Адрес внутреннего интерфейса.
 INT_IP=192.168.200.1
