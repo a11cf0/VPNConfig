@@ -25,7 +25,7 @@ To use this configuration you need the following:
 How to use
 ----------
 
-To set evrything up
+To set everything up
 1. Configure SoftEther VPN in local bridge mode;
 2. Read the comments in the files carefully;
 3. Modify netconf and dnsmasq.conf according to your server configuration;
